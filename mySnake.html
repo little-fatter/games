@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>my-snake</title>
+    <style>
+        .map{
+            width: 800px;
+            height: 600px;
+            background-color: black;
+            position: relative;
+        }
+        .circle {
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+<div class="map">
+    <div style="float: right;">
+        <div style="display: flex;flex-direction: row;">
+            <button onclick="begin()">开始</button>
+            <button onclick="pause()">暂停</button>
+            <button onclick="restart()">恢复</button>
+        </div>
+    </div>
+</div>
+<script>
+    class Food {
+        constructor(width,height,classes="circle") {
+            this.width = width
+            this.height = height
+            this.body = {
+                bkColor:null,
+                classes
+            }
+            this.x,
+            this.y,
+            this.foodEle = {}
+        }
+        init(map){
+            this.removeEle()
+            var obj = this.body;
+            var div = document.createElement("div");
+                map.appendChild(div);
+                div.style.width=this.width+'px';
+                div.style.height=this.height+'px';
+                div.style.position="absolute";
+                this.x = parseInt(Math.random()*(map.offsetWidth/this.width))
+                this.y = parseInt(Math.random()*(map.offsetHeight/this.height))
+                div.style.left=this.x*this.width+'px';
+                div.style.top=this.y*this.height+'px';
+                div.style.backgroundColor=obj.bkColor=['red','#ff9800','#ffeb3b','#3bff3d','#00bcd4','#2196f3','#9e21f3'][parseInt(Math.random()*7)];
+                div.className = this.body.classes = ['circle','square'][Math.round(Math.random())]
+                this.foodEle = div;
+        }
+        removeEle(){
+            if(!this.foodEle) return
+                var eles=this.foodEle;
+                eles && eles.parentNode && eles.parentNode.removeChild(eles);
+                this.foodEle = {}
+        };
+    }
+    class Snake {
+        constructor(width,height,bkColor,x,y,classes="circle",direction = "right") {
+            this.width = width
+            this.height = height
+            this.body = [{
+                x,
+                y,
+                bkColor,
+                classes
+            },{
+                x:x+1,
+                y,
+                bkColor,
+                classes
+            },{
+                x:x+2,
+                y,
+                bkColor,
+                classes
+            }]
+            this.direction = direction
+            this.snakeEle = []
+        }
+        init(map){
+            console.log(this.body.length)
+            this.body.forEach((item,index) => {
+                    var div=document.createElement("div");
+                    map.appendChild(div);
+                    div.style.width=this.width+'px';
+                    div.style.height=this.height+'px';
+                    div.style.position="absolute";
+                    div.style.left=item.x*this.width+'px';
+                    div.style.top=item.y*this.height+'px';
+                    div.style.backgroundColor=item.bkColor;
+                    div.className = item.classes
+                    this.snakeEle.push(div);
+            })
+            
+        }
+        isEatSelf(head){
+            return this.body.some(item => {
+                return item.x == head.x && item.y == head.y
+            })
+        }
+        move(map,food,setIntervalId) {
+
+            let endItem =JSON.parse(JSON.stringify(this.body.slice(0,1)[0])) 
+            switch(this.direction){
+                case "right":endItem.x = this.body[this.body.length -1].x+1,endItem.y = this.body[this.body.length -1].y;break;
+                case "left":endItem.x = this.body[this.body.length -1].x-1,endItem.y = this.body[this.body.length -1].y;break;
+                case "top":endItem.y = this.body[this.body.length -1].y+1,endItem.x = this.body[this.body.length -1].x;break;
+                case "bottom":endItem.y = this.body[this.body.length -1].y-1,endItem.x = this.body[this.body.length -1].x;break;
+            }
+
+            if(endItem.x*this.width >= 800 || endItem.x < 0 || endItem.y*this.height >= 600 || endItem.y < 0 || this.isEatSelf(endItem)) {
+                clearInterval(setIntervalId)
+                alert('you die!')
+                return 
+            }
+            if(food.x == endItem.x && food.y == endItem.y) {
+                endItem.classes = food.body.classes
+                endItem.bkColor = food.body.bkColor
+                food.init(map)
+            } else {
+                this.body.splice(0,1)
+            }
+
+            this.body.push(endItem)
+            this.removeSnakeEle(map)
+        }
+        removeSnakeEle(map){
+            for(var i=this.snakeEle.length-1;i>=0;i--){
+                var eles=this.snakeEle[i];
+                eles && eles.parentNode && eles.parentNode.removeChild(eles);
+                this.snakeEle.splice(i,1);
+            }
+            this.init(map)
+
+        };
+    }
+    class Game {
+        constructor(map) {
+            this.food = new Food(20,20)
+            this.snake = new Snake(20,20,'red',1,1),
+            this.map=map;
+            this.setIntervalId = null
+            this.directChange = this.changeDirection.bind(this);
+            this.status = false;
+        }
+        init() {
+            this.snake.init(this.map)
+            this.food.init(this.map)
+            this.onkey()
+            this.onSpace()
+            this.run(this.map)
+            this.status = true
+        }
+        run(map) {
+            this.setIntervalId = setInterval(() => {
+                this.snake.move(map,this.food,this.setIntervalId)
+            }, 100);   
+        }
+        changeDirection(e) {
+            switch(e.keyCode) {
+                    case 37:this.snake.direction == "right" ? '': this.snake.direction="left";break;
+                    case 38:this.snake.direction == "top" ? '': this.snake.direction="bottom";break;
+                    case 39:this.snake.direction == "left" ? '': this.snake.direction="right";break;
+                    case 40:this.snake.direction == "bottom" ? '': this.snake.direction="top";break;
+                }
+                e.stopPropagation()
+                e.preventDefault()
+        }
+        watchSpace(e) {
+            if(e && e.keyCode == 32) {
+                this.status = !this.status
+                this.status ? this.restart() : this.pause()
+            }
+                e.stopPropagation()
+            e.preventDefault()
+        }
+        onkey() {
+            document.addEventListener('keydown',this.directChange,false)
+        }
+        onSpace() {
+            document.addEventListener('keydown',this.watchSpace.bind(this),false)
+        }
+        pause() {
+            document.removeEventListener('keydown',this.directChange,false)
+            clearInterval(this.setIntervalId)
+        }
+        restart() {
+            this.onkey()
+            this.run(this.map)
+        }
+        close() {
+            clearInterval(this.setIntervalId)
+        }
+
+
+    }
+    
+    var game=null;
+    
+
+    function begin () {
+        if(game) {
+            game.close()
+            game=null;
+            document.querySelector(".map").childNodes.forEach(item => {
+                document.querySelector(".map").removeChild(item)
+            })
+            document.querySelector(".map").innerHTML = `<div style="float: right;">
+            <div style="display: flex;flex-direction: row;">
+                <button onclick="begin()">开始</button>
+                <button onclick="pause()">暂停</button>
+                <button onclick="restart()">恢复</button>
+            </div>
+        </div>`;
+        }
+        game=new Game(document.querySelector(".map"));
+        game.init();
+    }
+    function pause () {
+        game.pause()
+    }
+    function restart () {
+        game.restart()
+    }
+    document.onkeydown = function(e) {
+        var keyCode = e.keyCode || e.which || e.charCode;
+            if(keyCode === 83  && e.altKey) {
+                begin()
+            }
+                e.stopPropagation()
+            e.preventDefault()
+    }
+</script>
+
+</body>
+</html>
